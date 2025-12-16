@@ -1,3 +1,9 @@
+//======= File info =======//
+// File: chess.cpp
+
+//
+
+//======= Includes =======//
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -7,32 +13,33 @@
 /*This function sends a message to the chess engine
 and reads its response. It returns the main line of the response
 as a string.*/
-std::string talk_with_engine(std::string message,FILE* engine){
+void send_message(std::string message,FILE* engine){
     fputs((message+"\n").c_str(), engine);
     fflush(engine);
-    std::string main_line;
-    std::cout<<'\n';
-    if (message.find("position")==0 || message.find("ucinewgame")==0 ||
-    message.find("setoption")==0){
-        return "";
-    }
-    else{
-        char buffer[256];
-        while (fgets(buffer, sizeof(buffer), engine)) {
-            std::string line(buffer);
-            std::cout << line;
-            main_line = main_line + line + " ";
-            if (line.find("uciok")==0 || line.find("readyok")==0 ||
-            line.find("Unknown command")==0 || line.find("bestmove")==0 ||
-            line.find("registration")==0 || line.find("copyprotection")==0 ||
-            line.find("Nodes")==0){
-                break;
-            }
-        } 
-        std::cout << '\n';
-        return std::string(main_line);
-    }
-    
+}
+//Reads engine response until a known terminating line is found
+std::string read_response(FILE* engine){
+    //Reads engine response until a known terminating line is found
+    char buffer[256];
+    while (fgets(buffer, sizeof(buffer), engine)) {
+        std::string line(buffer);
+        std::cout << line;
+        //Check for known terminating lines
+        if (line.find("uciok")==0 || line.find("readyok")==0 ||
+        line.find("Unknown command")==0 || line.find("bestmove")==0 ||
+        line.find("registration")==0 || line.find("copyprotection")==0 ||
+        line.find("Nodes")==0){
+            break;
+        }
+    } 
+    std::cout << '\n';
+    std::string line(buffer);
+    return line;
+}
+
+std::string talk_with_engine(std::string message, FILE* engine){
+    send_message(message,engine);
+    return read_response(engine);
 }
 
 /*======= Board class =======*/
@@ -42,6 +49,7 @@ It also contains all the main functions for interacting with it.*/
 
 class Board{
     public: 
+    //======= Board data =======//
     char player_side;
     char board[8][8];
     char side;
@@ -51,12 +59,14 @@ class Board{
     int move_counter;
 //======= Board functions =======
 
-//Выдаёт строку типа "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 с ттекущей позиции на доске
+//Gets the current position in UCI format
     std::string get_uci_line(){
         std::string pos="";
+        //FEN generation
         for (int i=0;i<8;i++){
             int empty_count=0;
             for (int j=0;j<8;j++){
+                //Counting empty squares
                 if (board[i][j]=='.'){
                     empty_count++;
                 }
@@ -75,6 +85,7 @@ class Board{
                 pos+='/';
             }
         }
+    //Other FEN data
         pos+=' ';
         pos+=side;
         pos+=' ';
@@ -88,15 +99,15 @@ class Board{
         return pos;
     }
 
-    /*Получает строку типа "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-    <доска> <ход стороны> <рокировка> <enpasant> <половинные ходы> <ходы(с 1)>"
-    и задаёт из неё позицию на оске и в движке перед следующем ходе*/
+//Sets the board position from a FEN string
     void set_position(std::string pos, FILE* engine){
-        talk_with_engine(("position fen " + pos),engine);
+        //Send position to engine
+        send_message(("position fen " + pos),engine);
         int i = 0;
         int row = 0;
         int col = 0;
         std::string alf_num = "0123456789";
+        //Parsing FEN string
         while (pos[i]!=' '){
             if (pos[i]=='/'){
                 i++;
@@ -147,7 +158,7 @@ class Board{
         move_counter=std::stoi(move_str);
     }
 
-//Проверяет легальность хода с помощью движка
+//Checks if a move is legal by asking the engine (not used currently)
     bool move_check(std::string move,FILE* engine){
         std::string right_moves = talk_with_engine("go perft 2",engine);
         if (right_moves.find(move)!=std::string::npos){
@@ -160,10 +171,12 @@ class Board{
             }
     }
 
-//Делает ход на доске и меняет сторону
+//Makes a move on the board
     void do_move(std::string move, FILE* engine){
         std::string alf="abcdefgh";
         if (/*move_check(move,engine)*/true){
+            //Доска в board лежит в прпвильном порядке 
+            //но нумерайия строк обратная
             board[int(7-move[3]+'1')][alf.find(move[2])]=board[int(7-move[1]+'1')][alf.find(move[0])];
             board[int(7-move[1]+'1')][alf.find(move[0])]='.';
             if (side=='w'){
@@ -177,11 +190,12 @@ class Board{
         
     }
 
-//Печатает доску в консоль
+//Prints the board to console
     void print_board(){
+        //Print board depending on player side
         if (player_side=='w'){
-            for (int i=7;i>=0;i--){
-                std::cout<<i+1<<" ";
+            for (int i=0;i<8;i++){
+                std::cout<<8-i<<" ";
                 for (int j=0;j<8;j++){
                     std::cout<<board[i][j]<<" ";
                 }
@@ -190,8 +204,8 @@ class Board{
             std::cout<<"  a b c d e f g h\n";
         }
         else{
-            for (int i=0;i<8;i++){
-                std::cout<<i+1<<" ";
+            for (int i=7;i>=0;i--){
+                std::cout<<8-i<<" ";
                 for (int j=7;j>=0;j--){
                     std::cout<<board[i][j]<<" ";
                 }
@@ -226,16 +240,12 @@ int main(){
         board.print_board();
         std::cout<<"Enter your move: ";
         std::cin>>move;
-        std::cout<<board.get_uci_line()<<'\n';
         //Make move on board and in engine
         board.do_move(move,engine);
-        std::cout<<board.get_uci_line()<<'\n';
         //Get engine's response
         board.set_position(board.get_uci_line(),engine);
-        std::cout<<board.get_uci_line()<<'\n';
         //Ask engine for its move
         talk_with_engine("go depth 3",engine);
         std::cout<<'\n';
-        std::cout<<board.board<<'\n';
     }
 }
