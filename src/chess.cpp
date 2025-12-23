@@ -93,6 +93,7 @@ class Board{
         fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         set_position(fen,stdout);
         player_side='w';
+        side = 'w';
         game_mode="human-vs-human";
         engine1_depth=10*100000;
         time_control1=10*100000;
