@@ -87,6 +87,7 @@ class Board{
     std::string engine2_path; //Path to the second engine executable (for engine-vs-engine mode)
     char engine1_side; //Side for engine 1 (for engine-vs-engine mode)
     char engine2_side; //Side for engine 2 (for engine-vs-engine mode)
+
 //======= Board constructor =======//
     Board(){
         //Default constructor initializing standard chess starting position
@@ -95,7 +96,8 @@ class Board{
         player_side='w';
         side = 'w';
         game_mode="human-vs-human";
-        engine1_depth=10*100000;
+        engine1_path = "Stockfish/src/stockfish";
+        engine2_path = "Stockfish/src/stockfish";
         time_control1=10*100000;
         time_control2=10*100000;
         engine1_side = 'w';
@@ -374,11 +376,9 @@ void HumanVSEngine(Board* board){
         send_message("isready",engine);
         read_response(engine);
         board->set_position(board->fen,engine);
-        if (board->engine1_side==board->side){
-            board->print_board();
-            send_message("position fen "+ board->get_uci_line(),engine);
-            send_message("go depth "+ std::to_string(board->engine1_depth),engine);
-            board->do_move(read_response(engine).substr(9,4));
+        if (board->player_side==board->engine1_side){
+            board->player_side='w';
+            board->engine1_side='b';
         }
         while (true){
             if (board->half_move_counter>=50){
@@ -388,26 +388,30 @@ void HumanVSEngine(Board* board){
                 return;
             }
             board->print_board();
-            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
-            std::string input;
-            auto start_time = std::chrono::high_resolution_clock::now();
-            std::cin>>input;
-            auto end_time = std::chrono::high_resolution_clock::now();
-            board->time_control1 -= std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-            if (input=="quit"){
-                return;
+            if (board->player_side == board->side){
+                std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
+                std::string input;
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::cin>>input;
+                auto end_time = std::chrono::high_resolution_clock::now();
+                board->time_control1 -= std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                if (input=="quit"){
+                    return;
+                }
+                board->do_move(input);
             }
-            board->do_move(input);
-            send_message("position fen "+ board->get_uci_line(),engine);
-            send_message("go depth "+ std::to_string(board->engine1_depth),engine);
-            std::string move = read_response(engine);
-            if (move == "bestmove (none)\n"){
-                std::cout<<"Engine 1 has no legal moves. Game over.\n";
-                return;
-            }                
-            std::cout<<"Engine 1 plays: "+move+"\n";
-            board->do_move(move.substr(9,4));
-            std::cout << board->get_uci_line() << "\n";
+            else if (board->engine1_side == board->side){
+                send_message("position fen "+ board->get_uci_line(),engine);
+                send_message("go depth "+ std::to_string(board->engine1_depth),engine);
+                std::string move = read_response(engine);
+                if (move == "bestmove (none)\n"){
+                    std::cout<<"Engine 1 has no legal moves. Game over.\n";
+                    return;
+                }                
+                std::cout<<"Engine 1 plays: "+move+"\n";
+                board->do_move(move.substr(9,4));
+                std::cout << board->get_uci_line() << "\n";
+            }
         }
 }
 
@@ -482,9 +486,6 @@ bool parse_engine1_path(int argc, char* argv[],Board* board){
         if ((arg=="--engine1-path" || arg == "-ep1") && i+1<argc){
             board->engine1_path=argv[i+1];
         }
-        else{
-            board->engine1_path="./stockfish";
-        }
     }
     return 0;
 }
@@ -494,9 +495,6 @@ bool parse_engine2_path(int argc, char* argv[],Board* board){
         std::string arg=argv[i];
         if ((arg=="--engine2-path" || arg == "-ep2") && i+1<argc){
             board->engine2_path=argv[i+1];
-        }
-        else{
-            board->engine2_path="./stockfish";
         }
     }
     return 0;

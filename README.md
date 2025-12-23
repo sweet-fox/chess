@@ -1,9 +1,62 @@
 # CHESS (⌐■_■)
+---
+---
+## How to install
+---
+### Unix
+`git clone https://github.com/sweet-fox/chess`
+`cd chess`
+`cd ./Stockfish/src`
+`make help`
+`make make -j profile-build`
+`cd ..`
+`cd ..`
+`cmake .`
+`cmake --build .`
+`./chess` (use arguments)
+### Windows
+W+R
+`cmd`
+Enter
+`winget install MSYS2.MSYS2`
+`cd C:\`
+`cd .\msys64\`
+`mingw64.exe` or 32
+`### Unix
+`git clone https://github.com/sweet-fox/chess`
+`cd chess`
+`git clone https://github.com/official-stockfish/Stockfish`
+`cd ./Stockfish/src`
+`make help`
+`make make -j profile-build`
+`cd ..`
+`cd ..`
+`cmake .`
+`cmake --build .`
+`./chess` (use arguments)
+### Windows
+W+R
+`cmd`
+Enter
+`winget install MSYS2.MSYS2`
+`cd C:\`
+`cd .\msys64\`
+`mingw64.exe` or 32
+`pacman -Syu`
+and open again in cmd `mingw64.exe`
+`pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make git`
+`cd chess`
+`git clone https://github.com/official-stockfish/Stockfish`
+`cd ./Stockfish/src`
+`mingw32-make -j profile-build`
+`cd ..`
+`cd ..`
+`cmake .`
+`cmake --build .`
+`./chess.exe` (use arguments)
 
  ## How to use:
-1. Download and compile any engine that supports the UCI protocol.
-2. Compile the project: cd /chess/scr, g++(gcc) chess.cpp
-3. Play
+
 ARGUMENTS:
 
 | Argument          | Short  | Description                                                      | Default Value                    |
