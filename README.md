@@ -4,6 +4,7 @@
 ## How to install
 ---
 ### Unix
+#### long
 `git clone https://github.com/sweet-fox/chess`
 `cd chess`
 `cd ./Stockfish/src`
@@ -14,37 +15,24 @@
 `cmake .`
 `cmake --build .`
 `./chess` (use arguments)
+#### short
+1. `git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && make help && make -j profile-build && cd ../.. && cmake . && cmake --build .`
+    `./chess` (use arguments)
+2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x unix_bash_build.sh`
+    `./chess` (use arguments)
+    
+---
 ### Windows
+#### long
 W+R
 `cmd`
 Enter
-`winget install MSYS2.MSYS2`
-`cd C:\`
-`cd .\msys64\`
-`mingw64.exe` or 32
-`### Unix
-`git clone https://github.com/sweet-fox/chess`
-`cd chess`
-`git clone https://github.com/official-stockfish/Stockfish`
-`cd ./Stockfish/src`
-`make help`
-`make make -j profile-build`
-`cd ..`
-`cd ..`
-`cmake .`
-`cmake --build .`
-`./chess` (use arguments)
-### Windows
-W+R
-`cmd`
-Enter
-`winget install MSYS2.MSYS2`
-`cd C:\`
-`cd .\msys64\`
-`mingw64.exe` or 32
+`winget install MSYS2.MSYS2; start C:\msys64\mingw64.exe`
+in new window
 `pacman -Syu`
-and open again in cmd `mingw64.exe`
+and open again in cmd `start C:\msys64\mingw64.exe`
 `pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make git`
+`git clone https://github.com/sweet-fox/chess`
 `cd chess`
 `git clone https://github.com/official-stockfish/Stockfish`
 `cd ./Stockfish/src`
@@ -54,6 +42,18 @@ and open again in cmd `mingw64.exe`
 `cmake .`
 `cmake --build .`
 `./chess.exe` (use arguments)
+#### short
+W+R
+`cmd`
+Enter
+`winget install MSYS2.MSYS2; start C:\msys64\mingw64.exe`
+in new window
+`pacman -Syu`
+and open again in cmd `start C:\msys64\mingw64.exe`
+1. `git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && mingw32-make -j profile-build && cd ../.. && cmake . && cmake --build .`
+    `./chess` (use arguments)
+2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x win_bash_build.sh`
+    `./chess` (use arguments)
 
  ## How to use:
 
