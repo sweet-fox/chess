@@ -2,7 +2,7 @@
 // File: chess.cpp
 
 //========ARGUMENTS:========//
-//--game-mode(-gm) [human-vs-human/human-vs-engine/engine-vs-engine](hvh,hve,eve) : choose game mode (default: human-vs-engine)
+//--game-mode(-gm) [human-vs-human/human-vs-engine/engine-vs-engine](hvh,hve,eve) : choose game mode (default: human-vs-human)
 //--engine1-path(-ep1) [path to engine executable] : set the path to the first engine executable (default: ./stockfish)
 //--engine2-path(-ep2) [path to engine executable] : set the path to the second engine executable (for engine-vs-engine mode)
 //--engine1-depth(-ed1) [search depth] : set the search depth for the first engine (default: 1)
@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <cmath>
 
 /*======= Engine communication =======*/
 
@@ -80,21 +81,22 @@ class Board{
     std::string game_mode; //Game mode (default: human-vs-engine)
     int engine1_depth; //Engine search depth (default: 1)
     int engine2_depth; //Engine search depth (default: 1)
-    int time_control1; //Time control in seconds (default: -1 for unlimited)
-    int time_control2; //Time control in seconds (default: -1 for unlimited)
+    long long time_control1; //Time control in milliseconds, but write it in seconds (default: 2**64 for unlimited)
+    long long time_control2; //Time control in milliseconds, but write it in seconds (default: 2**64 for unlimited)
     std::string engine1_path; //Path to the engine executable (default: ./stockfish)
     std::string engine2_path; //Path to the second engine executable (for engine-vs-engine mode)
     char engine1_side; //Side for engine 1 (for engine-vs-engine mode)
-    char engine2_side; //Side for engine 2 (for engine-vs-engine mode
+    char engine2_side; //Side for engine 2 (for engine-vs-engine mode)
+//======= Board constructor =======//
     Board(){
         //Default constructor initializing standard chess starting position
         fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         set_position(fen,stdout);
         player_side='w';
-        game_mode="human-vs-engine";
-        engine1_depth=1;
-        time_control1=-1;
-        time_control2=-1;
+        game_mode="human-vs-human";
+        engine1_depth=10*100000;
+        time_control1=10*100000;
+        time_control2=10*100000;
     }
     
 //======= Board functions =======//
@@ -224,7 +226,7 @@ class Board{
 //Prints the board to console
     void print_board(){
         //Print board depending on player side
-        if (player_side=='w'){
+        if (side=='w'){
             for (int i=0;i<8;i++){
                 std::cout<<8-i<<" ";
                 for (int j=0;j<8;j++){
@@ -250,19 +252,21 @@ class Board{
 //======= Game mode functions =======//
 void HumanVSHuman(Board* board){
     std::cout<<"Human vs Human mode selected.\n";
-        while (true){
-            board->print_board();
-            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
-            std::string input;
-            std::cin>>input;
-            if (input=="quit"){
-                return;
-            }
-            board->do_move(input);
+    board->set_position(board->fen,stdout);
+    while (true){
+        board->print_board();
+        std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
+        std::string input;
+        std::cin>>input;
+        if (input=="quit"){
+            return;
         }
+        board->do_move(input);
+    }
 }
 
 void HumanVSEngine(Board* board){
+    std::cout <<board->time_control1<<'\n';
     FILE* engine = popen(board->engine1_path.c_str(),"r+");
         if (!engine){
             std::cout<<"ERROR: cant start chess engine";
@@ -273,16 +277,23 @@ void HumanVSEngine(Board* board){
         send_message("isready",engine);
         read_response(engine);
         board->set_position(board->fen,engine);
-        if (board->engine1_side=='w'){
+        if (board->engine1_side==board->side){
+            board->print_board();
             send_message("position fen "+ board->get_uci_line(),engine);
             send_message("go depth "+ std::to_string(board->engine1_depth),engine);
             board->do_move(read_response(engine).substr(9,4));
         }
         while (true){
+            if (board->time_control1<=0){
+                return;
+            }
             board->print_board();
             std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
             std::string input;
+            auto start_time = std::chrono::high_resolution_clock::now();
             std::cin>>input;
+            auto end_time = std::chrono::high_resolution_clock::now();
+            board->time_control1 -= std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
             if (input=="quit"){
                 return;
             }
@@ -407,10 +418,11 @@ bool parse_time_control(int argc, char* argv[],Board* board){
         if ((arg=="--time-control" || arg=="-tc") && i+1<argc){
             board->time_control1=std::stoi(argv[i+1])*1000;
             board->time_control2=std::stoi(argv[i+1])*1000;
+            return 1;
         }
         else{
-            board->time_control1=-1;
-            board->time_control2=-1;
+            board->time_control1=pow(2,64);
+            board->time_control2=pow(2,64);
         }
     }
     return 0;
@@ -459,6 +471,5 @@ int main(int argc, char* argv[]){
 
 //ДОПИСАТЬ ФУНКЦИЮ main, ДОБАВИТЬ ТАЙМ-КОНТРОЛЬ, ДОБАВИТЬ ОБРАБОТКУ ХОДОВ ЧЕЛОВЕКА
 //СДЕЛАТЬ БАЗОВУЮ ПРОЫЕРКУ НА ХОД ЦВЕТОМ ФИГУРЫ, КОТОРАЯ ХОДИТ
-//ПЕРЕПИСАТЬ ПАРСЕР АРГУМЕНТОВ
 //ПЕРЕПИСАТЬ В ФУНКЦИИ РЕЖИМЫ ИГР
 //переписать инициализатоор класса
