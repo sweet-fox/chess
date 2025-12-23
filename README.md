@@ -18,7 +18,10 @@
 #### short
 1. `git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && make help && make -j profile-build && cd ../.. && cmake . && cmake --build .`
     `./chess` (use arguments)
-2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x unix_bash_build.sh`
+
+##### or
+
+2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x unix_bash_build.sh && bash unix_bash_build.sh`
     `./chess` (use arguments)
     
 ---
@@ -51,9 +54,12 @@ in new window
 `pacman -Syu`
 and open again in cmd `start C:\msys64\mingw64.exe`
 1. `git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && mingw32-make -j profile-build && cd ../.. && cmake . && cmake --build .`
-    `./chess` (use arguments)
-2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x win_bash_build.sh`
-    `./chess` (use arguments)
+    `./chess.exe` (use arguments)
+
+##### or
+
+2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x win_bash_build.sh && bash win_bash_build.sh`
+    `./chess.exe` (use arguments)
 
  ## How to use:
 
