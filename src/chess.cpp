@@ -1,16 +1,17 @@
 //======= File info =======//
 // File: chess.cpp
 
-
 //========ARGUMENTS:========//
-//--game-mode [human-vs-human/human-vs-engine/engine-vs-engine] : choose game mode (default: human-vs-engine)
-/*[human-vs-human] : --game-mode human-vs-human */
-/*[human-vs-engine] : --game-mode human-vs-engine [engine-path] (default: ./stockfish)[engine-depth] (default: 1) [player-side] (default: w)*/
-/*[engine-vs-engine] : --game-mode engine-vs-engine [engine1-path] [engine2-path] [engine1-depth] (default: 1) 
-[engine2-depth] (default: 1) [side1] (default: w)*/
-//--position [FEN string] : set the starting position using a FEN string (default: standard chess starting position)
+//--game-mode(-gm) [human-vs-human/human-vs-engine/engine-vs-engine](hvh,hve,eve) : choose game mode (default: human-vs-engine)
+//--engine1-path(-ep1) [path to engine executable] : set the path to the first engine executable (default: ./stockfish)
+//--engine2-path(-ep2) [path to engine executable] : set the path to the second engine executable (for engine-vs-engine mode)
+//--engine1-depth(-ed1) [search depth] : set the search depth for the first engine (default: 1)
+//--engine2-depth(-ed2) [search depth] : set the search depth for the second
+//--engine1-side(-es1) [w/b] : set the side for the first engine (for engine-vs-engine mode)
+//--player-side(-ps) [w/b] : set the side for the human player (default: w)
+//--position(-p) [FEN string] : set the starting position using a FEN string (default: standard chess starting position)
 /*you can use https://mutsuntsai.github.io/fen-tool/ or https://www.redhotpawn.com/chess/chess-fen-viewer.php for FEN strings*/
-//--time-control [time in seconds] : set the time control for each player (default: unlimited)
+//--time-control(-tc) [time in seconds] : set the time control for each player (default: unlimited)
 
 
 //======= Includes =======//
@@ -18,6 +19,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <chrono>
 
 /*======= Engine communication =======*/
 
@@ -78,12 +80,12 @@ class Board{
     std::string game_mode; //Game mode (default: human-vs-engine)
     int engine1_depth; //Engine search depth (default: 1)
     int engine2_depth; //Engine search depth (default: 1)
-    int time_control; //Time control in seconds (default: -1 for unlimited)
+    int time_control1; //Time control in seconds (default: -1 for unlimited)
+    int time_control2; //Time control in seconds (default: -1 for unlimited)
     std::string engine1_path; //Path to the engine executable (default: ./stockfish)
     std::string engine2_path; //Path to the second engine executable (for engine-vs-engine mode)
     char engine1_side; //Side for engine 1 (for engine-vs-engine mode)
     char engine2_side; //Side for engine 2 (for engine-vs-engine mode
-
     Board(){
         //Default constructor initializing standard chess starting position
         fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -91,7 +93,8 @@ class Board{
         player_side='w';
         game_mode="human-vs-engine";
         engine1_depth=1;
-        time_control=-1;
+        time_control1=-1;
+        time_control2=-1;
     }
     
 //======= Board functions =======//
@@ -244,128 +247,187 @@ class Board{
     }
 };
 
-bool arg_to_board(int argc, char* argv[], Board* board){
-    for (int i=0;i<argc;i++){
-
-        //Parsing command line arguments
-        if (std::string(argv[i])=="--game-mode"){
-
-            //Check if mode argument is provided
-            if (std::string(argv[i+1])=="human-vs-human" || std::string(argv[i+1])=="human-vs-engine" || std::string(argv[i+1])=="engine-vs-engine"){
-                board->game_mode = argv[i+1];
-                i++;
+//======= Game mode functions =======//
+void HumanVSHuman(Board* board){
+    std::cout<<"Human vs Human mode selected.\n";
+        while (true){
+            board->print_board();
+            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
+            std::string input;
+            std::cin>>input;
+            if (input=="quit"){
+                return;
             }
-            else{
-                std::cout<<"ERROR: no game mode specified after --game-mode argument.\n";
-                return 0;
-            }
-
-            if (std::string(argv[i])=="human-vs-human"){
-                continue;    
-            }
-
-            if (std::string(argv[i])=="human-vs-engine"){
-
-                if (argv[i+1][0]!='.' and argv[i+1][0]!='/'){
-                    std::cout<<argv[i+1][0] << ' ' << argv[i+1];
-                    std::cout<<"ERROR: no engine path specified after --game-mode human-vs-engine argument.\n";
-                    return 0;
-                }
-                else{
-                    board->engine1_path = argv[i+1];
-                    i++;
-                }
-
-                if (strlen(argv[i+1])<3){
-                    board->engine1_depth = std::stoi(argv[i+1]);
-                    i++;
-                }
-                else{
-                    std::cout<<"WARNING: no engine depth specified after engine path. Using default depth 1.\n";
-                    board->engine1_depth = 1;
-                }
-
-                if (std::string(argv[i+1])=="w" || std::string(argv[i+1])=="b"){
-                    board->player_side = std::string(argv[i+1])[0];
-                    i++;
-                }
-                else{
-                    std::cout<<"WARNING: no player side specified after engine depth. Using default side 'w'.\n";
-                    board->player_side = 'w';
-                }
-            }
-
-            if (std::string(argv[i])=="engine-vs-engine"){
-
-                if (argv[i+1][0]!='"'){
-                    std::cout<<"ERROR: no engine path specified after --game-mode engine-vs-engine argument.\n";
-                    return 0;
-                }
-                else{
-                    board->engine1_path = argv[i+1];
-                    i++;
-                }
-
-                if (argv[i+1][0]!='"'){
-                    std::cout<<"ERROR: no engine path specified after --game-mode human-vs-engine argument.\n";
-                    return 0;
-                }
-                else{
-                    board->engine2_path = argv[i+1];
-                    i++;
-                }
-
-                if (strlen(argv[i+1])<3){
-                    board->engine1_depth = std::stoi(argv[i+1]);
-                    i++;
-                }
-                else{
-                    std::cout<<"WARNING: no engine depth specified after engine path for engine 1. Using default depth 1.\n";
-                    board->engine1_depth = 1;
-                }
-
-                if (strlen(argv[i+1])<3){
-                    board->engine2_depth = std::stoi(argv[i+1]);
-                    i++;
-                }
-                else{
-                    std::cout<<"WARNING: no engine depth specified after engine path for engine 2. Using default depth 1.\n";
-                    board->engine2_depth = 1;
-                }
-
-                if (std::string(argv[i+1])=="w" || std::string(argv[i+1])=="b"){
-                    if (std::string(argv[i+1])[0]=='w'){
-                        board->engine1_side='w';
-                        board->engine2_side='b';
-                    }
-                    else{
-                        board->engine1_side='b';
-                        board->engine2_side='w';
-                    }
-                    i++;
-                }
-                else{
-                    std::cout<<"WARNING: no engine 1 side specified after engine depth. Using default side 'w'.\n";
-                    board->engine1_side = 'w';
-                    board->engine2_side = 'b';
-                }
-            }
-
+            board->do_move(input);
         }
-                  
-        if (std::string(argv[i])=="--position"){
-            if (argv[i+1][0]!='"'){
-                std::cout<<"ERROR: no FEN string specified after --position argument.\n";
-                return 0;
+}
+
+void HumanVSEngine(Board* board){
+    FILE* engine = popen(board->engine1_path.c_str(),"r+");
+        if (!engine){
+            std::cout<<"ERROR: cant start chess engine";
+            return;
+        }
+        send_message("uci",engine);
+        read_response(engine);
+        send_message("isready",engine);
+        read_response(engine);
+        board->set_position(board->fen,engine);
+        if (board->engine1_side=='w'){
+            send_message("position fen "+ board->get_uci_line(),engine);
+            send_message("go depth "+ std::to_string(board->engine1_depth),engine);
+            board->do_move(read_response(engine).substr(9,4));
+        }
+        while (true){
+            board->print_board();
+            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
+            std::string input;
+            std::cin>>input;
+            if (input=="quit"){
+                return;
             }
-            else{
-                board->fen = argv[i+1];
-                i++;
-            }
+            board->do_move(input);
+            send_message("position fen "+ board->get_uci_line(),engine);
+            send_message("go depth "+ std::to_string(board->engine1_depth),engine);
+            board->do_move(read_response(engine).substr(9,4));
+        }
+}
+
+void EngineVSEngine(Board* board){
+    std::cout<<"Engine vs Engine mode selected. Not implemented yet.\n";
+}
+
+//======= Argument parsing functions =======//
+bool parse_game_mode(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--game-mode" || arg == "-gm") && i+1<argc){
+            board->game_mode=argv[i+1];
         }
     }
+    return 0;
+}
+
+bool parse_engine1_path(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--engine1-path" || arg == "-ep1") && i+1<argc){
+            board->engine1_path=argv[i+1];
+        }
+        else{
+            board->engine1_path="./stockfish";
+        }
+    }
+    return 0;
+}
+
+bool parse_engine2_path(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--engine2-path" || arg == "-ep2") && i+1<argc){
+            board->engine2_path=argv[i+1];
+        }
+        else{
+            board->engine2_path="./stockfish";
+        }
+    }
+    return 0;
+}
+
+bool parse_engine1_depth(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--engine1-depth" || arg == "-ed1") && i+1<argc){
+            board->engine1_depth=std::stoi(argv[i+1]);
+        }
+        else{
+            board->engine1_depth=1;
+        }
+
+    }
+    return 0;
+}
+
+bool parse_engine2_depth(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--engine2-depth" || arg == "-ed2") && i+1<argc){
+            board->engine2_depth=std::stoi(argv[i+1]);
+        }
+        else{
+            board->engine2_depth=1;
+        }
+    }
+    return 0;
+}
+
+bool parse_sides(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--player-side" || arg=="-ps") && i+1<argc){
+            if (argv[i+1][0]=='w'){
+                board->player_side='w';
+                board->engine1_side='b';
+            }
+            else{
+                board->player_side='b';
+                board->engine1_side='w';
+            }
+            return 1;
+        }
+        else if((arg=="--engine1-side" || arg=="-es1") && i+1<argc){
+            if (argv[i+1][0]=='w'){
+                board->engine1_side='w';
+                board->engine2_side='b';
+            }
+            else{
+                board->engine1_side='b';
+                board->engine2_side='w';
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+bool parse_position(int argc, char* argv[],Board* board){
+    for (int i=0;i<argc;i++){
+        std::string arg = argv[i];
+        if ((arg=="--position" || arg=="-p") && i+1<argc){
+            board->fen = argv[i+1];
+            return 1;
+        }
+    }
+    return 0;
+}
+
+bool parse_time_control(int argc, char* argv[],Board* board){
+    for (int i;i<argc;i++){
+        std::string arg=argv[i];
+        if ((arg=="--time-control" || arg=="-tc") && i+1<argc){
+            board->time_control1=std::stoi(argv[i+1])*1000;
+            board->time_control2=std::stoi(argv[i+1])*1000;
+        }
+        else{
+            board->time_control1=-1;
+            board->time_control2=-1;
+        }
+    }
+    return 0;
+}
+
+bool arg_to_board(int argc, char* argv[],Board* board){
+    parse_game_mode(argc,argv,board);
+    parse_engine1_path(argc,argv,board);
+    parse_engine2_path(argc,argv,board);
+    parse_engine1_depth(argc,argv,board);
+    parse_engine2_depth(argc,argv,board);
+    parse_sides(argc,argv,board);
+    parse_position(argc,argv,board);
+    parse_time_control(argc,argv,board);
     return 1;
 }
+
 //======= Main function =======//
 
 int main(int argc, char* argv[]){
@@ -380,51 +442,23 @@ int main(int argc, char* argv[]){
    }
    std::cout<<board.game_mode<<"\n";
 
-//Starting engine process
-    if (board.game_mode=="human-vs-human"){
-        std::cout<<"Human vs Human mode selected.\n";
-        while (true){
-            board.print_board();
-            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
-            std::string input;
-            std::cin>>input;
-            if (input=="quit"){
-                return 0;
-            }
-            board.do_move(input);
-        }
-    }
-
-    else if (board.game_mode=="human-vs-engine"){
-        FILE* engine = popen(board.engine1_path.c_str(),"r+");
-        if (!engine){
-            std::cout<<"ERROR: cant start chess engine";
-            return 1;
-        }
-        send_message("uci",engine);
-        read_response(engine);
-        send_message("isready",engine);
-        read_response(engine);
-        board.set_position(board.fen,engine);
-        while (true){
-            board.print_board();
-            std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
-            std::string input;
-            std::cin>>input;
-            if (input=="quit"){
-                return 0;
-            }
-            board.do_move(input);
-            send_message("position fen "+ board.get_uci_line(),engine);
-            send_message("go depth "+ std::to_string(board.engine1_depth),engine);
-            board.do_move(read_response(engine).substr(9,4));
-        }
-    }
-    else if (board.game_mode=="engine-vs-engine"){
-        std::cout<<"Engine vs Engine mode selected. Not implemented yet.\n";
-    }
-    return 0;
+   if (board.game_mode=="human-vs-human" || board.game_mode=="hvh"){
+       HumanVSHuman(&board);
+   }
+   else if (board.game_mode=="human-vs-engine" || board.game_mode=="hve"){
+       HumanVSEngine(&board);
+   }
+   else if (board.game_mode=="engine-vs-engine" || board.game_mode=="eve"){
+       EngineVSEngine(&board);
+   }
+   else{
+       std::cout<<"Invalid game mode. Exiting.\n";
+       return 1;
+   }
 }
 
 //ДОПИСАТЬ ФУНКЦИЮ main, ДОБАВИТЬ ТАЙМ-КОНТРОЛЬ, ДОБАВИТЬ ОБРАБОТКУ ХОДОВ ЧЕЛОВЕКА
 //СДЕЛАТЬ БАЗОВУЮ ПРОЫЕРКУ НА ХОД ЦВЕТОМ ФИГУРЫ, КОТОРАЯ ХОДИТ
+//ПЕРЕПИСАТЬ ПАРСЕР АРГУМЕНТОВ
+//ПЕРЕПИСАТЬ В ФУНКЦИИ РЕЖИМЫ ИГР
+//переписать инициализатоор класса
