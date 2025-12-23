@@ -381,6 +381,9 @@ void HumanVSEngine(Board* board){
             board->do_move(read_response(engine).substr(9,4));
         }
         while (true){
+            if (board->half_move_counter>=50){
+            return;
+            }
             if (board->time_control1<=0){
                 return;
             }
@@ -397,7 +400,14 @@ void HumanVSEngine(Board* board){
             board->do_move(input);
             send_message("position fen "+ board->get_uci_line(),engine);
             send_message("go depth "+ std::to_string(board->engine1_depth),engine);
-            board->do_move(read_response(engine).substr(9,4));
+            std::string move = read_response(engine);
+            if (move == "bestmove (none)\n"){
+                std::cout<<"Engine 1 has no legal moves. Game over.\n";
+                return;
+            }                
+            std::cout<<"Engine 1 plays: "+move+"\n";
+            board->do_move(move.substr(9,4));
+            std::cout << board->get_uci_line() << "\n";
         }
 }
 
