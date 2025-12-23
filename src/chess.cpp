@@ -98,6 +98,10 @@ class Board{
         engine1_depth=10*100000;
         time_control1=10*100000;
         time_control2=10*100000;
+        engine1_side = 'w';
+        engine2_side = 'b';
+        engine1_depth=1;
+        engine2_depth=1;
     }
     
 //======= Board functions =======//
@@ -211,6 +215,88 @@ class Board{
         if (/*move_check(move,engine)*/true){
             //Доска в board лежит в прпвильном порядке 
             //но нумерайия строк обратная
+            //Castling handling
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'K' && move[0]=='e' && move[1]=='1' && move[2]=='g' && move[3]=='1'){
+                //White kingside castling
+                board[7][6]='K';
+                board[7][5]='R';
+                board[7][4]='.';
+                board[7][7]='.';
+                castling.erase(castling.find('K'),2);
+                side='b';
+                move_counter++;
+                return;
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'k' && move[0]=='e' && move[1]=='8' && move[2]=='g' && move[3]=='8'){
+                //Black kingside castling
+                board[0][6]='k';
+                board[0][5]='r';
+                board[0][4]='.';
+                board[0][7]='.';
+                castling.erase(castling.find('k'),2);
+                side='w';
+                move_counter++;
+                return;
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'K' && move[0]=='e' && move[1]=='1' && move[2]=='c' && move[3]=='1'){
+                //White queenside castling
+                board[7][2]='K';
+                board[7][3]='R';
+                board[7][4]='.';
+                board[7][0]='.';
+                castling.erase(castling.find('K'),2);
+                side='b';
+                move_counter++;
+                return;
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'k' && move[0]=='e' && move[1]=='8' && move[2]=='c' && move[3]=='8'){
+                //Black queenside castling
+                board[0][2]='k';
+                board[0][3]='r';
+                board[0][4]='.';
+                board[0][0]='.';
+                castling.erase(castling.find('k'),2);
+                side='w';
+                move_counter++;
+                return;
+            }
+            
+            //Updating castling rights if king or rook moved
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'K' && castling.find('K')!=std::string::npos || castling.find('Q')!=std::string::npos){
+                //White king moved, remove castling rights
+                castling.erase(castling.find('K'),1);
+                castling.erase(castling.find('Q'),1);
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'k' && castling.find('k')!=std::string::npos || castling.find('q')!=std::string::npos){
+                //White king moved, remove castling rights
+                castling.erase(castling.find('k'),1);
+                castling.erase(castling.find('q'),1);
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'R' && move[0]=='h' && move[1]=='1' && castling.find('Q')!=std::string::npos){
+                //White kingside rook moved, remove castling rights
+                castling.erase(castling.find('Q'),1);
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'r' && move[0]=='h' && move[1]=='8' && castling.find('q')!=std::string::npos){
+                //Black kingside rook moved, remove castling rights
+                castling.erase(castling.find('q'),1);
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'R' && move[0]=='a' && move[1]=='1' && castling.find('K')!=std::string::npos){
+                //White queenside rook moved, remove castling rights
+                castling.erase(castling.find('K'),1);
+            }
+            if (board[int(7-move[1]+'1')][alf.find(move[0])] == 'r' && move[0]=='a' && move[1]=='8' && castling.find('k')!=std::string::npos){
+                //Black queenside rook moved, remove castling rights
+                std::cout<<castling<<'\n';
+                castling.erase(castling.find('k'),1);
+            }
+            
+            if (board[int(7-move[3]+'1')][alf.find(move[2])]=='.'){
+                half_move_counter++;
+            }
+            else{
+                half_move_counter=0;
+            }
+
             board[int(7-move[3]+'1')][alf.find(move[2])]=board[int(7-move[1]+'1')][alf.find(move[0])];
             board[int(7-move[1]+'1')][alf.find(move[0])]='.';
             if (side=='w'){
@@ -255,10 +341,21 @@ void HumanVSHuman(Board* board){
     std::cout<<"Human vs Human mode selected.\n";
     board->set_position(board->fen,stdout);
     while (true){
+        if (board->time_control1<=0 || board->time_control2<=0){
+            return;
+        }
         board->print_board();
         std::cout << "Enter your move in algebraic notation (or 'quit' to exit): ";
         std::string input;
+        auto start_time = std::chrono::high_resolution_clock::now();
         std::cin>>input;
+        auto end_time = std::chrono::high_resolution_clock::now();
+        if (board->side=='w'){
+            board->time_control1 -= std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        }
+        else{
+            board->time_control2 -= std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        }
         if (input=="quit"){
             return;
         }
@@ -267,7 +364,6 @@ void HumanVSHuman(Board* board){
 }
 
 void HumanVSEngine(Board* board){
-    std::cout <<board->time_control1<<'\n';
     FILE* engine = popen(board->engine1_path.c_str(),"r+");
         if (!engine){
             std::cout<<"ERROR: cant start chess engine";
@@ -306,7 +402,57 @@ void HumanVSEngine(Board* board){
 }
 
 void EngineVSEngine(Board* board){
-    std::cout<<"Engine vs Engine mode selected. Not implemented yet.\n";
+    FILE* engine1 = popen(board->engine1_path.c_str(),"r+");
+        if (!engine1){
+            std::cout<<"ERROR: cant start chess engine";
+            return;
+        }
+    FILE* engine2 = popen(board->engine2_path.c_str(),"r+");
+        if (!engine2){
+            std::cout<<"ERROR: cant start chess engine";
+            return;
+        }
+        send_message("uci",engine1);
+        read_response(engine1);
+        send_message("isready",engine1);
+        read_response(engine1);
+        send_message("uci",engine2);
+        read_response(engine2);
+        send_message("isready",engine2);
+        read_response(engine2);
+    while (true){
+        
+        if (board->half_move_counter>=50){
+            return;
+        }
+            board->print_board();
+            if (board->side==board->engine1_side){
+                send_message("position fen "+ board->get_uci_line(),engine1);
+                send_message("go depth "+ std::to_string(board->engine1_depth),engine1);
+                std::string move = read_response(engine1);
+                if (move == "bestmove (none)\n"){
+                    std::cout<<"Engine 1 has no legal moves. Game over.\n";
+                    return;
+                }
+                std::cout<<"Engine 1 plays: "+move+"\n";
+                board->do_move(move.substr(9,4));
+                std::cout << board->get_uci_line() << "\n";
+                continue;
+            }
+            else{
+                send_message("position fen "+ board->get_uci_line(),engine2);
+                send_message("go depth "+ std::to_string(board->engine2_depth),engine2);
+                std::string move = read_response(engine2);
+                if (move == "bestmove (none)\n"){
+                    std::cout<<"Engine 2 has no legal moves. Game over.\n";
+                    return;
+                }
+                std::cout<<"Engine 2 plays: "+move+"\n";
+                board->do_move(move.substr(9,4));
+                std::cout << board->get_uci_line() << "\n";
+                continue;
+            }
+        }
 }
 
 //======= Argument parsing functions =======//
@@ -351,6 +497,7 @@ bool parse_engine1_depth(int argc, char* argv[],Board* board){
         std::string arg=argv[i];
         if ((arg=="--engine1-depth" || arg == "-ed1") && i+1<argc){
             board->engine1_depth=std::stoi(argv[i+1]);
+            return 1;
         }
         else{
             board->engine1_depth=1;
@@ -365,6 +512,7 @@ bool parse_engine2_depth(int argc, char* argv[],Board* board){
         std::string arg=argv[i];
         if ((arg=="--engine2-depth" || arg == "-ed2") && i+1<argc){
             board->engine2_depth=std::stoi(argv[i+1]);
+            return 1;
         }
         else{
             board->engine2_depth=1;
@@ -473,4 +621,4 @@ int main(int argc, char* argv[]){
 //ДОПИСАТЬ ФУНКЦИЮ main, ДОБАВИТЬ ТАЙМ-КОНТРОЛЬ, ДОБАВИТЬ ОБРАБОТКУ ХОДОВ ЧЕЛОВЕКА
 //СДЕЛАТЬ БАЗОВУЮ ПРОЫЕРКУ НА ХОД ЦВЕТОМ ФИГУРЫ, КОТОРАЯ ХОДИТ
 //ПЕРЕПИСАТЬ В ФУНКЦИИ РЕЖИМЫ ИГР
-//переписать инициализатоор класса
+//НАПИСАТЬ ОГРПНИЧЕНИЕ ПОЛОВИННЫХ ХОДОВ
