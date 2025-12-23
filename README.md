@@ -4,6 +4,9 @@
 ## How to install
 ---
 ### Unix
+
+you need to install git https://git-scm.com/install/linux
+
 #### long
 `git clone https://github.com/sweet-fox/chess`
 `cd chess`
@@ -61,7 +64,7 @@ and open again in cmd `start C:\msys64\mingw64.exe`
 
 ##### or
 
-2. `git clone https://github.com/sweet-fox/chess && cd chess && chmod +x win_bash_build.sh && bash win_bash_build.sh`
+2. `pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make && git clone https://github.com/sweet-fox/chess && cd chess && chmod +x win_bash_build.sh && bash win_bash_build.sh`
     `./chess.exe` (use arguments)
 
  ## How to use:
