@@ -30,8 +30,8 @@
 W+R
 `cmd`
 Enter
-`winget install MSYS2.MSYS2; start C:\msys64\mingw64.exe`
-in new window
+`winget install MSYS2.MSYS2 && start C:\msys64\mingw64.exe`
+in new window (shift+ins or ins) after press y
 `pacman -Syu`
 and open again in cmd `start C:\msys64\mingw64.exe`
 `pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make git`
@@ -49,11 +49,14 @@ and open again in cmd `start C:\msys64\mingw64.exe`
 W+R
 `cmd`
 Enter
-`winget install MSYS2.MSYS2; start C:\msys64\mingw64.exe`
-in new window
+`winget install MSYS2.MSYS2 && start C:\msys64\mingw64.exe`
+in new window (shift+ins or ins) after press y
 `pacman -Syu`
 and open again in cmd `start C:\msys64\mingw64.exe`
-1. `git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && mingw32-make -j profile-build && cd ../.. && cmake . && cmake --build .`
+
+##### after 
+
+1. `pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-make && git clone https://github.com/sweet-fox/chess && cd chess && git clone https://github.com/official-stockfish/Stockfish && cd ./Stockfish/src && mingw32-make -j profile-build && cd ../.. && cmake . && cmake --build .`
     `./chess.exe` (use arguments)
 
 ##### or
