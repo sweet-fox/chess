@@ -10,6 +10,7 @@ you need to install git https://git-scm.com/install/linux
 #### long
 `git clone https://github.com/sweet-fox/chess`
 `cd chess`
+`git clone https://github.com/official-stockfish/Stockfish`
 `cd ./Stockfish/src`
 `make help`
 `make make -j profile-build`
